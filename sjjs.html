@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gallery Tabs — Klik untuk buka</title>
+  <style>
+    :root{
+      --bg:#0f1720;
+      --card:#485676;
+      --card-contrast:#5870a0;
+      --text:#fff;
+      --muted: #dbe6ff80;
+      --radius:18px;
+      --gap:28px;
+      font-family: Inter, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+
+    html,body{height:100%;margin:0;background:
+      radial-gradient(ellipse at 20% 10%, rgba(0,0,0,0.6) 0 20%, transparent 30%),
+      radial-gradient(ellipse at 80% 90%, rgba(0,0,0,0.45) 0 18%, transparent 30%),
+      var(--bg);
+      color:var(--text);
+    }
+
+    .wrap{
+      max-width:1100px;
+      margin:36px auto;
+      padding:20px;
+    }
+
+    h1{
+      margin:0 0 18px 0;
+      font-weight:600;
+      font-size:20px;
+      letter-spacing:0.2px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: var(--gap);
+      align-items:start;
+    }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border-radius: var(--radius);
+      padding:14px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+      transition: transform .18s ease, box-shadow .18s ease;
+      cursor:pointer;
+      border: 1px solid rgba(255,255,255,0.04);
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      min-height:260px;
+      overflow:hidden;
+    }
+
+    .card:focus,
+    .card:hover{
+      transform: translateY(-6px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      outline: none;
+    }
+
+    .thumb{
+      width:100%;
+      aspect-ratio: 1 / 1;
+      background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.02));
+      border-radius:14px;
+      overflow:hidden;
+      display:block;
+      align-self:center;
+      object-fit:cover;
+      border: 6px solid rgba(255,255,255,0.03);
+    }
+
+    .meta{
+      margin-top:auto;
+    }
+
+    .title{
+      font-size:20px;
+      font-weight:700;
+      margin:6px 0 4px 0;
+      color: white;
+    }
+
+    .desc{
+      font-size:14px;
+      line-height:1.45;
+      color:var(--muted);
+      height:56px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      display:-webkit-box;
+      -webkit-line-clamp:3;
+      -webkit-box-orient:vertical;
+    }
+
+    .modal-backdrop{
+      position:fixed;
+      inset:0;
+      background: rgb(2, 6, 23);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:28px;
+      z-index:100;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .16s ease;
+    }
+    .modal-backdrop.show{
+      opacity:1;
+      pointer-events:auto;
+    }
+    .modal{
+      width:100%;
+      max-width:700px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:18px;
+      padding:18px;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+      color:var(--text);
+      display:grid;
+      grid-template-columns: 1fr 360px;
+      gap:18px;
+    }
+
+    .modal img{
+      width:90%;
+      height:90%;
+      object-fit:contain;
+      border-radius:12px;
+      background:#111;
+      padding:12px;
+    }
+
+    .modal .info{
+      padding:6px 10px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      justify-content:space-between;
+    }
+
+    .modal .info h2{
+      margin:0;
+      font-size:20px;
+    }
+
+    .modal .info p{
+      margin:0;
+      color:var(--muted);
+      line-height:1.55;
+      font-size:15px;
+    }
+
+    .close-btn{
+      margin-left:auto;
+      background:transparent;
+      border:1px solid rgba(255,255,255,0.06);
+      color:var(--muted);
+      padding:8px 12px;
+      border-radius:10px;
+      cursor:pointer;
+    }
+
+    /* tombol detail HTML lain */
+    .detail-btn{
+      background: #5870a0;
+      color: #fff;
+      border: none;
+      padding:10px 16px;
+      border-radius:8px;
+      font-size:14px;
+      cursor:pointer;
+      text-decoration: none;
+      text-align: center;
+    }
+
+    @media (max-width:880px){
+      .modal{ grid-template-columns: 1fr; max-height:90vh; overflow:auto; }
+      .modal img{ height:420px; }
+    }
+
+    .hint{
+      margin-top:18px;
+      color:var(--muted);
+      font-size:13px;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="wrap" role="main">
+    <h1>Gallery — Image ToolKit</h1>
+
+    <div class="grid" id="grid">
+
+      <!-- Card 1 -->
+      <button class="card" data-title="Batch Image Resizer" data-desc="For change image resolution quickly" data-img="1.png" data-detailpage="res.html" aria-haspopup="dialog">
+        <img class="thumb" src="1.png" alt="thumbnail image 1">
+        <div class="meta">
+          <div class="title">Batch Image Resizer</div>
+          <div class="desc">For change image resolution quickly</div>
+        </div>
+      </button>
+
+      <!-- Card 2 -->
+      <button class="card" data-title="Batch Aspect Ratio Changer" data-desc="Select multiple images and desired aspect ratio for each." data-img="2.png" data-detailpage="ratio.html" aria-haspopup="dialog">
+        <img class="thumb" src="2.png" alt="thumbnail image 2">
+        <div class="meta">
+          <div class="title">Batch Aspect Ratio Changer</div>
+          <div class="desc">Select multiple images and desired aspect ratio for each.</div>
+        </div>
+      </button>
+
+      <!-- Card 3 -->
+      <button class="card" data-title="Convert Image Format" data-desc="Convert image format quickly and multiple" data-img="3.png" data-detailpage="converter.html" aria-haspopup="dialog">
+        <img class="thumb" src="3.png" alt="thumbnail image 3">
+        <div class="meta">
+          <div class="title">Convert Image Format</div>
+          <div class="desc">Convert image format quickly and multiple</div>
+        </div>
+      </button>
+
+      <!-- Card 4 -->
+      <button class="card" data-title="Tab 4" data-desc="Nothing." data-img="4.png" data-detailpage="detail4.html" aria-haspopup="dialog">
+        <img class="thumb" src="4.png" alt="thumbnail image 4">
+        <div class="meta">
+          <div class="title">NONE</div>
+          <div class="desc"></div>
+        </div>
+      </button>
+
+    </div>
+
+    <div class="hint">Tip: press <kbd>Esc</kbd> for close</div>
+  </div>
+
+  <div id="backdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal" role="document" aria-labelledby="modal-title">
+      <div class="media">
+        <img id="modal-img" src="" alt="Gambar lebih besar">
+      </div>
+      <div class="info">
+        <div>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <h2 id="modal-title">Title</h2>
+            <button class="close-btn" id="close">Close ✕</button>
+          </div>
+          <p id="modal-desc">Desccription</p>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center;">
+          <a id="download-link" href="#" download class="close-btn" style="text-decoration:none;">Download</a>
+          <button id="open-new" class="close-btn">Open in new tab</button>
+          <!-- tombol detail page -->
+          <a id="detail-btn" class="detail-btn" href="#" target="_blank">Open Project</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const grid = document.getElementById('grid');
+      const backdrop = document.getElementById('backdrop');
+      const modalImg = document.getElementById('modal-img');
+      const modalTitle = document.getElementById('modal-title');
+      const modalDesc = document.getElementById('modal-desc');
+      const closeBtn = document.getElementById('close');
+      const downloadLink = document.getElementById('download-link');
+      const openNewBtn = document.getElementById('open-new');
+      const detailBtn = document.getElementById('detail-btn');
+
+      function openModal(data){
+        modalImg.src = data.img;
+        modalImg.alt = data.title;
+        modalTitle.textContent = data.title;
+        modalDesc.textContent = data.desc;
+        downloadLink.href = data.img;
+        downloadLink.setAttribute('download', data.title.replace(/\s+/g,'_') + '.jpg');
+        openNewBtn.onclick = () => window.open(data.img, '_blank');
+        // tombol detail
+        if (data.detailpage){
+          detailBtn.href = data.detailpage;
+          detailBtn.style.display = 'inline-block';
+        } else {
+          detailBtn.style.display = 'none';
+        }
+        backdrop.classList.add('show');
+        backdrop.setAttribute('aria-hidden','false');
+        closeBtn.focus();
+      }
+
+      function closeModal(){
+        backdrop.classList.remove('show');
+        backdrop.setAttribute('aria-hidden','true');
+        modalImg.src = '';
+      }
+
+      grid.addEventListener('click', function(e){
+        const card = e.target.closest('.card');
+        if(!card) return;
+        const data = {
+          title: card.dataset.title || 'No title',
+          desc: card.dataset.desc || '',
+          img: card.dataset.img || card.querySelector('img')?.src || '',
+          detailpage: card.dataset.detailpage || null
+        };
+        openModal(data);
+      });
+
+      closeBtn.addEventListener('click', closeModal);
+      backdrop.addEventListener('click', function(e){
+        if(e.target === backdrop) closeModal();
+      });
+      document.addEventListener('keydown', function(e){
+        if(e.key === 'Escape' && backdrop.classList.contains('show')){
+          closeModal();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
