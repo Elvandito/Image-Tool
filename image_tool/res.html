@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Resizer with Progress Bar</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f8ff;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #0099ff;
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        main {
+            padding: 20px;
+            margin: 10px;
+            text-align: center;
+        }
+
+        input[type="file"], input[type="number"], button {
+            margin: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        button {
+            background-color: #0099ff;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #007acc;
+        }
+
+        #output {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .resized-image-container {
+            border: 1px solid #ddd;
+            background-color: white;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 200px;
+        }
+
+        .resized-image {
+            max-width: 100%;
+            border-radius: 5px;
+        }
+
+        #progressBar {
+            width: 100%;
+            max-width: 500px;
+            margin: 20px auto;
+            height: 20px;
+            background-color: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            display: none;
+        }
+
+        #progressBar div {
+            height: 100%;
+            background-color: #0099ff;
+            width: 0;
+            transition: width 0.2s ease;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Batch Image Resizer</h1>
+        <p>Change image resolution with progress bar!</p>
+    </header>
+    <main>
+        <input type="file" id="fileInput" multiple accept="image/*">
+        <br>
+        <label for="width">Width (px):</label>
+        <input type="number" id="width" placeholder="Contoh: 300">
+        <label for="height">Height (px):</label>
+        <input type="number" id="height" placeholder="Contoh: 300">
+        <br>
+        <button id="resizeButton">Resize Images</button>
+        <button onclick="window.location.href='mtk.html'" class="bg-gray-900 text-white rounded-full px-4 py-2 mt-4">
+            ← Back
+        </button>
+        <div id="progressBar"><div></div></div>
+        <button id="downloadAllButton" style="display: none;">Download All</button>
+        <div id="output"></div>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script>
+        let resizedImages = [];
+
+        document.getElementById('resizeButton').addEventListener('click', () => {
+            const files = document.getElementById('fileInput').files;
+            const width = parseInt(document.getElementById('width').value);
+            const height = parseInt(document.getElementById('height').value);
+            const output = document.getElementById('output');
+            const progressBar = document.getElementById('progressBar');
+            const progressBarFill = progressBar.querySelector('div');
+
+            if (!files.length || !width || !height) {
+                alert('Harap pilih gambar dan masukkan ukuran!');
+                return;
+            }
+
+            output.innerHTML = '';
+            resizedImages = [];
+            progressBar.style.display = 'block';
+            progressBarFill.style.width = '0%';
+            document.getElementById('downloadAllButton').style.display = 'none';
+
+            let processedCount = 0;
+            function processNextImage(index) {
+                if (index >= files.length) {
+                    progressBar.style.display = 'none';
+                    document.getElementById('downloadAllButton').style.display = 'inline-block';
+                    return;
+                }
+
+                const file = files[index];
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        canvas.toBlob((blob) => {
+                            resizedImages.push({ name: file.name, blob });
+
+                            const container = document.createElement('div');
+                            container.classList.add('resized-image-container');
+
+                            const resizedImg = document.createElement('img');
+                            resizedImg.src = URL.createObjectURL(blob);
+                            resizedImg.classList.add('resized-image');
+                            container.appendChild(resizedImg);
+
+                            output.appendChild(container);
+
+                            processedCount++;
+                            progressBarFill.style.width = `${(processedCount / files.length) * 100}%`;
+
+                            setTimeout(() => processNextImage(index + 1), 50);
+                        }, 'image/jpeg', 0.7);
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+
+            processNextImage(0);
+        });
+
+        document.getElementById('downloadAllButton').addEventListener('click', () => {
+            const zip = new JSZip();
+            let processedCount = 0;
+            const totalFiles = resizedImages.length;
+
+            function processNextFile(index) {
+                if (index >= totalFiles) {
+                    zip.generateAsync({ type: 'blob' }).then((content) => {
+                        saveAs(content, 'resized-images.zip');
+                    });
+                    return;
+                }
+
+                const image = resizedImages[index];
+                zip.file(image.name, image.blob);
+                
+                processedCount++;
+                setTimeout(() => processNextFile(index + 1), 50);
+            }
+
+            processNextFile(0);
+        });
+    </script>
+</body>
+</html>

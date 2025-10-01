@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batch Aspect Ratio Changer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f8ff;
+            color: #333;
+            animation: step-start;
+        }
+        .container {
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            max-width: 800px;
+        }
+        canvas {
+            display: none;
+        }
+        input, button, select {
+            margin: 10px 5px;
+            padding: 8px 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4cafef;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #007acc;
+        }
+        #output {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+        }
+        .image-container img {
+            max-width: 150px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        #progressBar {
+            margin: 20px auto;
+            width: 100%;
+            max-width: 600px;
+            height: 20px;
+            background: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            display: none;
+        
+        }
+        #progressBar div {
+            height: 100%;
+            background: #4cafef;
+            width: 0;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Batch Aspect Ratio Changer</h1>
+        <p>Select multiple images and specify the desired aspect ratio for each.</p>
+        <input type="file" id="imageInput" accept="image/*" multiple>
+        <br>
+        <label for="aspectRatio">Aspect Ratio:</label>
+        <select id="aspectRatio">
+            <option value="1:1">1:1 (Square)</option>
+            <option value="16:9">16:9</option>
+            <option value="9:16">9:16</option>
+            <option value="4:3">4:3</option>
+            <option value="3:2">3:2</option>
+            <option value="custom">Custom</option>
+        </select>
+        <div id="customRatioInputs" style="display: none;">
+            <input type="number" id="customWidth" placeholder="Width Ratio (e.g., 4)" style="width: 100px;">
+            :
+            <input type="number" id="customHeight" placeholder="Height Ratio (e.g., 3)" style="width: 100px;">
+        </div>
+        <br>
+        <button id="processImages">Process Images</button>
+        <div id="progressBar"><div></div></div>
+        <br>
+        <button id="downloadAll" style="display: none;">Download All as ZIP</button>
+        <div id="output"></div>
+        <canvas id="canvas"></canvas>
+    </div>
+    <button onclick="window.location.href='mtk.html'" class="bg-gray-900 text-white rounded-full px-4 py-2 mt-4">
+    ← Back
+</button>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const aspectRatioSelect = document.getElementById('aspectRatio');
+        const customRatioInputs = document.getElementById('customRatioInputs');
+        const customWidthInput = document.getElementById('customWidth');
+        const customHeightInput = document.getElementById('customHeight');
+        const processImagesButton = document.getElementById('processImages');
+        const downloadAllButton = document.getElementById('downloadAll');
+        const output = document.getElementById('output');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const progressBar = document.getElementById('progressBar');
+        const progressBarFill = progressBar.firstElementChild;
+
+        let processedImages = [];
+
+        aspectRatioSelect.addEventListener('change', () => {
+            customRatioInputs.style.display = aspectRatioSelect.value === 'custom' ? 'block' : 'none';
+        });
+
+        processImagesButton.addEventListener('click', () => {
+            const files = imageInput.files;
+            if (!files.length) {
+                alert('Please upload at least one image.');
+                return;
+            }
+
+            processedImages = [];
+            output.innerHTML = '';
+            progressBar.style.display = 'block';
+            progressBarFill.style.width = '0%';
+            downloadAllButton.style.display = 'none';
+
+            const aspectRatio = aspectRatioSelect.value === 'custom' 
+                ? [parseInt(customWidthInput.value), parseInt(customHeightInput.value)]
+                : aspectRatioSelect.value.split(':').map(Number);
+
+            if (aspectRatio.includes(NaN)) {
+                alert('Please enter valid custom aspect ratios.');
+                return;
+            }
+
+            const totalFiles = files.length;
+            let processedCount = 0;
+
+            Array.from(files).forEach((file) => {
+                const img = new Image();
+                img.onload = () => {
+                    const [aspectWidth, aspectHeight] = aspectRatio;
+                    const targetWidth = img.width;
+                    const targetHeight = (img.width / aspectWidth) * aspectHeight;
+
+                    canvas.width = targetWidth;
+                    canvas.height = targetHeight;
+
+                    const cropX = 0;
+                    const cropY = (img.height - targetHeight) / 2;
+
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, cropX, cropY, img.width, targetHeight, 0, 0, targetWidth, targetHeight);
+
+                    const processedImage = canvas.toDataURL();
+                    processedImages.push({ name: file.name.replace(/\.[^/.]+$/, '') + '.png', data: processedImage });
+
+                    const imageContainer = document.createElement('div');
+                    imageContainer.className = 'image-container';
+
+                    const preview = document.createElement('img');
+                    preview.src = processedImage;
+
+                    imageContainer.appendChild(preview);
+                    output.appendChild(imageContainer);
+
+                    processedCount++;
+                    progressBarFill.style.width = `${(processedCount / totalFiles) * 100}%`;
+
+                    if (processedCount === totalFiles) {
+                        progressBar.style.display = 'none';
+                        downloadAllButton.style.display = 'block';
+                    }
+                };
+                img.src = URL.createObjectURL(file);
+            });
+        });
+
+        downloadAllButton.addEventListener('click', () => {
+            const zip = new JSZip();
+            processedImages.forEach(({ name, data }) => {
+                zip.file(name, data.split(',')[1], { base64: true });
+            });
+            zip.generateAsync({ type: 'blob' }).then((content) => {
+                saveAs(content, 'processed_images.zip');
+            });
+        });
+    </script>
+</body>
+</html>
